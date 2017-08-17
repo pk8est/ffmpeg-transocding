@@ -1,4 +1,4 @@
-TARGET = cffmpeg.o
+TARGET = cffmpeg
 ######################################################
 CC = $(CROSSCOMPILER)gcc
 CFLAGS = 
