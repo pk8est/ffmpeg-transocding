@@ -1,4 +1,21 @@
-#gcc -Wall -ggdb main.c -I/usr/local/ffmpeg/include -L/usr/local/ffmpeg/lib  -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lm -lz -pthread -o ./build/cffmpeg -D__STDC_CONSTANT_MACROS
-all:cffmpeg
-cffmpeg:
-	gcc -Wall -ggdb main.c -I/usr/local/ffmpeg/include -L/usr/local/ffmpeg/lib  -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lm -lz -pthread -o ./build/cffmpeg -D__STDC_CONSTANT_MACROS
+TARGET = cffmpeg.o
+######################################################
+CC = $(CROSSCOMPILER)gcc
+CFLAGS = 
+INCS = -I./ -I/usr/local/ffmpeg/include
+LIBS = -L/usr/local/ffmpeg/lib -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lpthread -lz -lm
+
+all: $(TARGET)
+
+SOURCES = packet.c trans.c cffmpeg.c
+OBJECTS = $(SOURCES:.c=.o)
+
+$(TARGET) : $(OBJECTS)
+	$(CC) -O2 -o $@ $(INCS) $(CFLAGS) $^ $(LIBS)
+
+%.o:%.c
+	$(CC) -O2 -c -o $@ $(INCS) $(CFLAGS) $^
+clean:
+	@rm -vrf $(TARGET) $(OBJECTS) 
+	@rm -vrf *.o *~
+

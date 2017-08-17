@@ -1,0 +1,8 @@
+#gcc -Wall -ggdb main.c -I/usr/local/ffmpeg/include -L/usr/local/ffmpeg/lib  -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lm -lz -pthread -o ./build/cffmpeg -D__STDC_CONSTANT_MACROS
+all:cffmpeg
+packet.o:
+	gcc -c -D__STDC_CONSTANT_MACROS packet.c -o packet.o
+trans.o:
+	gcc -c -D__STDC_CONSTANT_MACROS trans.c packet.o -o  trans.o
+cffmpeg:
+	gcc -Wall -ggdb main.c trans.o -I/usr/local/ffmpeg/include -L/usr/local/ffmpeg/lib  -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lm -lz -pthread -o ./build/cffmpeg -D__STDC_CONSTANT_MACROS
