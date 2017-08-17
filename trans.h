@@ -1,58 +1,59 @@
+#pragma once
+#ifndef _TRANS_H_
+#define _TRANS_H_
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <pthread.h>
-#include <sys/types.h>
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
-#include "libavutil/avutil.h"
-#include "libavutil/opt.h"
-#include "libavutil/mathematics.h"
-#include "libavfilter/avfilter.h"
-#include "libavutil/audio_fifo.h"
-#include "packet.h"
+#include <errno.h>
+#include <stdint.h>
 
-typedef struct FilteringContext{
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavfilter/avfilter.h>
+#include <libavutil/avutil.h>
+#include <libavutil/opt.h>
+#include <libavutil/timestamp.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/pixdesc.h>
+#include <libavutil/audio_fifo.h>
+
+
+
+enum log_level_enum
+{
+	QUIET=AV_LOG_QUIET,
+	PANIC = AV_LOG_PANIC,
+	FATAL = AV_LOG_FATAL,
+	ERROR = AV_LOG_ERROR,
+	WARNING = AV_LOG_WARNING,
+	INFO = AV_LOG_INFO,
+	VERBOSE = AV_LOG_VERBOSE,
+	DEBUG = AV_LOG_DEBUG,
+	TRACE = AV_LOG_TRACE,
+};
+
+
+typedef struct StreamContext {
+	AVCodecContext *dec_ctx;
+	AVCodecContext *enc_ctx;
+} StreamContext;
+
+typedef struct EncodeParam
+{
+	char *vcoder;
+	char *acoder;
+	int *vbitrate;
+} EncodeParam;
+
+typedef struct FilteringContext {
 	AVFilterContext* buffersrc_ctx;
 	AVFilterContext* buffersink_ctx;
 	AVFilterGraph* filter_graph;
 }FilteringContext;
 
-typedef struct qiniu_ADTSContext{
-	AVClass* class;
-	int write_adts;
-	int objecttype;
-	int sample_rate_index;
-	int channel_conf;
-	int pce_size;
-	int apetag;
-	int id3v2tag;
-	uint8_t pce_data[320];
-}qiniu_ADTSContext;
+enum log_level_enum getLogLevel();
+void set_log_level(enum log_level_enum level);
+int create_trans_task(char *inputfilename, char *outputpath);
 
-typedef int(*DECFUNC)(AVCodecContext*,AVFrame*,int*,const AVPacket*) ;
-
-typedef struct Transfer_Thread_Task{
-	char* outputfilename;
-	AVCodecContext** decoder_context;
-	AVFormatContext* output_format_context;
-	FilteringContext* filter_context;
-	AVBitStreamFilterContext* extrabsfc;
-	AVBitStreamFilterContext* h264_mp4toannexbbsfc;
-	AVAudioFifo* avaf;
-	PacketList pl;
-	pthread_mutex_t mutex;
-	pthread_cond_t cond;
-	int pushover;
-	AVRational* input_stream_time_base;
-	AVRational* input_codec_time_base;
-	uint64_t pts;
-	uint64_t dts;
-	int frame_index;
-}Transfer_Thread_Task;
-
-extern void init_ffmpeg();
-
-extern int CreateTransTask(char* inputfilename, char* outputpath);
+#endif
