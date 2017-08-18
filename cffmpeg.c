@@ -1,14 +1,52 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "trans.h"
+
+#define BLOCK_SIZE 512
 
 int main(int argc, char *argv[])
 {
-	int ret;
+	int ret, pid;
 	char *input_file = "/mnt/hgfs/web/c++/ffmpeg-transocding/build/input.mp4";
 	char *output_file = "/mnt/hgfs/web/c++/ffmpeg-transocding/build/output.mp4";
 	char *output_path = "/mnt/hgfs/web/c++/ffmpeg-transocding/build";
-//	ret = CreateTransTask(input_file, output_path);
-	ret = create_trans_task(input_file, output_file);
-	printf("Hello!\n");
+	int pfds[2];
+	ret = pipe(pfds);
+	if(ret == -1){
+		printf("fail to create pipe;\n");
+		return -1;
+	}
+	pid = fork();
+	if(pid == -1){
+		printf("fail to fork;\n");
+		return -1;
+	}else if(pid == 0){
+		dup2(pfds[1], 1);
+		close(pfds[0]);
+		set_log_level(ERROR);
+	//	ret = CreateTransTask(input_file, output_path);
+		ret = create_trans_task(input_file, "pipe:");
+		return 0;
+	}else{
+		//close(0);
+		//dup2(pfds[0], 1);
+		close(pfds[1]);
+		size_t bytes;
+		char buffer[BLOCK_SIZE];
+		FILE *fp =fopen( "./build/output-pipe.ts", "w" );
+		while(1){
+			ret = read(pfds[0], buffer, sizeof(buffer));
+			if(ret <= 0){
+				printf("no data to write\n");
+				break;
+			}
+			fwrite(buffer, sizeof(char), BLOCK_SIZE, fp);
+			//printf("%d\n", ret);
+			//bytes = fread(buffer, BLOCK_SIZE, sizeof(char), stdout);	
+			//printf("%s", buffer);
+
+		}
+	}
+
 	return 0;
 }

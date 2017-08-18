@@ -95,7 +95,7 @@ int open_output_file(const char *filename, const AVFormatContext *ifmt_ctx, AVFo
 	int ret;
 	unsigned int i;
 
-	avformat_alloc_output_context2(ofmt_ctx, NULL, NULL, filename);
+	avformat_alloc_output_context2(ofmt_ctx, NULL, "mpegts", filename);
 	if (!*ofmt_ctx) {
 		ERROR_LOG("Could not create output context: %s!\n", av_err2str(AVERROR_UNKNOWN));
 		return AVERROR_UNKNOWN;
@@ -630,7 +630,7 @@ int create_trans_task(char *input_filename, char *output_filename) {
 		goto end;
 	}
 
-	print_info(ifmt_ctx);
+//	print_info(ifmt_ctx);
 
 	if((ret = open_output_file(output_filename, ifmt_ctx, &ofmt_ctx, &stream_ctx)) < 0){
 		goto end;
