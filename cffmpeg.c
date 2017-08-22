@@ -62,7 +62,7 @@ void execute_cgi(int client, const char *path,
         create_trans_task(path, "pipe:");
         return ;
     }else{
-        sprintf(buf, "HTTP/1.0 200 OK\r\n\r\n");
+        sprintf(buf, "HTTP/1.1 200 OK\r\n\r\n");
         send(client, buf, strlen(buf), 0);
 
         close(pfds[1]);
@@ -74,7 +74,6 @@ void execute_cgi(int client, const char *path,
         }
         shutdown(client, SHUT_RDWR);
         close(pfds[0]);
-        waitpid(pid, &status, 0);
     }
 
 
