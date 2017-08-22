@@ -72,7 +72,7 @@ void execute_cgi(int client, const char *path,
         while ((ret = read(pfds[0], buffer, sizeof(buffer))) > 0){
             send(client, buffer, ret, 0);
         }
-        //shutdown(client, 0);
+        shutdown(client, SHUT_RDWR);
         close(pfds[0]);
         waitpid(pid, &status, 0);
     }
@@ -138,7 +138,7 @@ void accept_request(void *arg)
     printf("method=%s, query_string=%s, path=%s\n", method, *query_string, path);
     execute_cgi(client, path, method, query_string);
 
-    //close(client);
+    close(client);
 }
 
 int startup(u_short *port)
