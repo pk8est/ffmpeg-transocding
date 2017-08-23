@@ -1,29 +1,12 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "transcoding.h"
 
 int main(int argc, char **argv)
 {
-    int pfds[2];
-
-    if ( pipe(pfds) == 0 ) {
-
-        if ( fork() == 0 ) {
-
-            close(1);
-            dup2( pfds[1], 1 );
-            close( pfds[0] );
-            execlp( "ls", "ls", "-l", NULL );
-
-        } else {
-
-            close(0);
-            dup2( pfds[0], 0 );
-            close( pfds[1] );
-            execlp( "wc", "wc", "-l", NULL );
-
-        }
-    }
-
+	char *input_file = "/mnt/hgfs/web/c++/ffmpeg-transocding/build/input.mp4";
+	char *output_file = "/mnt/hgfs/web/c++/ffmpeg-transocding/build/output.mp4";
+    av_log_set_level(AV_LOG_DEBUG);
+	run_transcoding(argc, argv, input_file, output_file);
+	printf("test start ...\n");
     return 0;
 }
