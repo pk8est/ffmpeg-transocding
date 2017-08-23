@@ -3,6 +3,8 @@
 #include "ffmpeg_opt.h"
 #include "transcoding.h"
 
+const char program_name[] = "ffmpeg";
+
 static volatile int received_sigterm = 0;
 static volatile int received_nb_signals = 0;
 static atomic_int transcode_init_done = ATOMIC_VAR_INIT(0);
@@ -11,6 +13,12 @@ InputStream **input_streams = NULL;
 int nb_input_streams = 0;
 InputFile **input_files   = NULL;
 int nb_input_files   = 0;
+
+OutputStream **output_streams = NULL;
+int         nb_output_streams = 0;
+OutputFile   **output_files   = NULL;
+int         nb_output_files   = 0;
+
 FilterGraph **filtergraphs;
 int nb_filtergraphs;
 
@@ -142,6 +150,24 @@ int run_transcoding(int argc, char **argv, char *input_file, char *output_file)
     register_ffmpeg();
 
     ret = ffmpeg_parse_options(argc, argv);
+
+    if (ret < 0)
+        exit_program(1);
+
+    if (nb_output_files <= 0 && nb_input_files == 0) {
+        show_usage();
+        av_log(NULL, AV_LOG_WARNING, "Use -h to get full help or, even better, run 'man %s'\n", 
+            program_name);
+        exit_program(1);
+    }
+
+    printf("input_file=%d, output_file=%d\n", nb_input_files, nb_output_files);
+
+    /* file converter / grab */
+    if (nb_output_files <= 0) {
+        av_log(NULL, AV_LOG_FATAL, "At least one output file must be specified\n");
+        exit_program(1);
+    }
 
 	return 0;
 }

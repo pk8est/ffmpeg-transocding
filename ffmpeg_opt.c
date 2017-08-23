@@ -828,6 +828,7 @@ static int open_input_file(OptionsContext *o, const char *filename)
     /* get default parameters from command line */
     ic = avformat_alloc_context();
 
+
     if (!ic) {
         print_error(filename, AVERROR(ENOMEM));
         exit_program(1);
@@ -1054,6 +1055,11 @@ static int open_input_file(OptionsContext *o, const char *filename)
     return 0;
 }
 
+static int open_output_file(OptionsContext *o, const char *filename)
+{
+    return 0;
+}
+
 static void init_options(OptionsContext *o)
 {
     memset(o, 0, sizeof(*o));
@@ -1118,7 +1124,6 @@ static int open_files(OptionGroupList *l, const char *inout,
                    "%s.\n", inout, g->arg);
             return ret;
         }
-
         av_log(NULL, AV_LOG_DEBUG, "Opening an %s file: %s.\n", inout, g->arg);
         ret = open_file(&o, g->arg);
         uninit_options(&o);
@@ -1131,6 +1136,25 @@ static int open_files(OptionGroupList *l, const char *inout,
     }
 
     return 0;
+}
+
+static int init_complex_filters(void)
+{
+    int i, ret = 0;
+
+    for (i = 0; i < nb_filtergraphs; i++) {
+        ret = init_complex_filtergraph(filtergraphs[i]);
+        if (ret < 0)
+            return ret;
+    }
+    return 0;
+}
+
+void show_usage(void)
+{
+    av_log(NULL, AV_LOG_INFO, "Hyper fast Audio and Video encoder\n");
+    av_log(NULL, AV_LOG_INFO, "usage: %s [options] [[infile options] -i infile]... {[outfile options] outfile}...\n", program_name);
+    av_log(NULL, AV_LOG_INFO, "\n");
 }
 
 int ffmpeg_parse_options(int argc, char **argv)
@@ -1148,6 +1172,7 @@ int ffmpeg_parse_options(int argc, char **argv)
         goto fail;
     }
 
+
     /* apply global options */
     ret = parse_optgroup(NULL, &octx.global_opts);
     if (ret < 0) {
@@ -1162,6 +1187,20 @@ int ffmpeg_parse_options(int argc, char **argv)
     ret = open_files(&octx.groups[GROUP_INFILE], "input", open_input_file);
     if (ret < 0) {
         av_log(NULL, AV_LOG_FATAL, "Error opening input files: ");
+        goto fail;
+    }
+
+    /* create the complex filtergraphs */
+    ret = init_complex_filters();
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_FATAL, "Error initializing complex filters.\n");
+        goto fail;
+    }
+
+    /* open output files */
+    ret = open_files(&octx.groups[GROUP_OUTFILE], "output", open_output_file);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_FATAL, "Error opening output files: ");
         goto fail;
     }
 

@@ -42,6 +42,20 @@ enum HWAccelID {
     HWACCEL_D3D11VA,
 };
 
+enum forced_keyframes_const {
+    FKF_N,
+    FKF_N_FORCED,
+    FKF_PREV_FORCED_N,
+    FKF_PREV_FORCED_T,
+    FKF_T,
+    FKF_NB
+};
+
+typedef enum {
+    ENCODER_FINISHED = 1,
+    MUXER_FINISHED = 2,
+} OSTFinished ;
+
 typedef struct HWAccel {
     const char *name;
     int (*init)(AVCodecContext *s);
@@ -395,11 +409,146 @@ typedef struct InputStream {
     int got_output;
 } InputStream;
 
+typedef struct OutputStream {
+    int file_index;          /* file index */
+    int index;               /* stream index in the output file */
+    int source_index;        /* InputStream index */
+    AVStream *st;            /* stream in the output file */
+    int encoding_needed;     /* true if encoding needed for this stream */
+    int frame_number;
+    /* input pts and corresponding output pts
+       for A/V sync */
+    struct InputStream *sync_ist; /* input stream to sync against */
+    int64_t sync_opts;       /* output frame counter, could be changed to some true timestamp */ // FIXME look at frame_number
+    /* pts of the first frame encoded for this stream, used for limiting
+     * recording time */
+    int64_t first_pts;
+    /* dts of the last packet sent to the muxer */
+    int64_t last_mux_dts;
+    // the timebase of the packets sent to the muxer
+    AVRational mux_timebase;
+    AVRational enc_timebase;
+
+    int                    nb_bitstream_filters;
+    AVBSFContext            **bsf_ctx;
+
+    AVCodecContext *enc_ctx;
+    AVCodecParameters *ref_par; /* associated input codec parameters with encoders options applied */
+    AVCodec *enc;
+    int64_t max_frames;
+    AVFrame *filtered_frame;
+    AVFrame *last_frame;
+    int last_dropped;
+    int last_nb0_frames[3];
+
+    void  *hwaccel_ctx;
+
+    /* video only */
+    AVRational frame_rate;
+    int is_cfr;
+    int force_fps;
+    int top_field_first;
+    int rotate_overridden;
+    double rotate_override_value;
+
+    AVRational frame_aspect_ratio;
+
+    /* forced key frames */
+    int64_t *forced_kf_pts;
+    int forced_kf_count;
+    int forced_kf_index;
+    char *forced_keyframes;
+    AVExpr *forced_keyframes_pexpr;
+    double forced_keyframes_expr_const_values[FKF_NB];
+
+    /* audio only */
+    int *audio_channels_map;             /* list of the channels id to pick from the source stream */
+    int audio_channels_mapped;           /* number of channels in audio_channels_map */
+
+    char *logfile_prefix;
+    FILE *logfile;
+
+    OutputFilter *filter;
+    char *avfilter;
+    char *filters;         ///< filtergraph associated to the -filter option
+    char *filters_script;  ///< filtergraph script associated to the -filter_script option
+
+    AVDictionary *encoder_opts;
+    AVDictionary *sws_dict;
+    AVDictionary *swr_opts;
+    AVDictionary *resample_opts;
+    char *apad;
+    OSTFinished finished;        /* no more packets should be written for this stream */
+    int unavailable;                     /* true if the steram is unavailable (possibly temporarily) */
+    int stream_copy;
+
+    // init_output_stream() has been called for this stream
+    // The encoder and the bitstream filters have been initialized and the stream
+    // parameters are set in the AVStream.
+    int initialized;
+
+    int inputs_done;
+
+    const char *attachment_filename;
+    int copy_initial_nonkeyframes;
+    int copy_prior_start;
+    char *disposition;
+
+    int keep_pix_fmt;
+
+    AVCodecParserContext *parser;
+    AVCodecContext       *parser_avctx;
+
+    /* stats */
+    // combined size of all the packets written
+    uint64_t data_size;
+    // number of packets send to the muxer
+    uint64_t packets_written;
+    // number of frames/samples sent to the encoder
+    uint64_t frames_encoded;
+    uint64_t samples_encoded;
+
+    /* packet quality factor */
+    int quality;
+
+    int max_muxing_queue_size;
+
+    /* the packets are buffered here until the muxer is ready to be initialized */
+    AVFifoBuffer *muxing_queue;
+
+    /* packet picture type */
+    int pict_type;
+
+    /* frame encode sum of squared error values */
+    int64_t error[4];
+} OutputStream;
+
+typedef struct OutputFile {
+    AVFormatContext *ctx;
+    AVDictionary *opts;
+    int ost_index;       /* index of the first stream in output_streams */
+    int64_t recording_time;  ///< desired length of the resulting file in microseconds == AV_TIME_BASE units
+    int64_t start_time;      ///< start time in microseconds == AV_TIME_BASE units
+    uint64_t limit_filesize; /* filesize limit expressed in bytes */
+
+    int shortest;
+
+    int header_written;
+} OutputFile;
+
+extern const char program_name[];
 extern const AVIOInterruptCB int_cb;
+
 extern InputStream **input_streams;
 extern int nb_input_streams;
 extern InputFile **input_files;
 extern int nb_input_files;
+
+extern OutputStream **output_streams;
+extern int         nb_output_streams;
+extern OutputFile   **output_files;
+extern int         nb_output_files;
+
 extern FilterGraph **filtergraphs;
 extern int  nb_filtergraphs;
 
