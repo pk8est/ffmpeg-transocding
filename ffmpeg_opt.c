@@ -1055,8 +1055,149 @@ static int open_input_file(OptionsContext *o, const char *filename)
     return 0;
 }
 
+static OutputStream *new_video_stream(OptionsContext *o, AVFormatContext *oc, int source_index)
+{
+    AVStream *st;
+    OutputStream *ost;
+    AVCodecContext *video_enc;
+    char *frame_rate = NULL, *frame_aspect_ratio = NULL;
+
+
+    return ost;
+}
+
+static OutputStream *new_audio_stream(OptionsContext *o, AVFormatContext *oc, int source_index)
+{
+    int n;
+    AVStream *st;
+    OutputStream *ost;
+    AVCodecContext *audio_enc;
+
+    return ost;
+}
+
+static void init_output_filter(OutputFilter *ofilter, OptionsContext *o,
+                               AVFormatContext *oc)
+{
+    OutputStream *ost;
+
+    switch (ofilter->type) {
+    case AVMEDIA_TYPE_VIDEO: ost = new_video_stream(o, oc, -1); break;
+    case AVMEDIA_TYPE_AUDIO: ost = new_audio_stream(o, oc, -1); break;
+    default:
+        av_log(NULL, AV_LOG_FATAL, "Only video and audio filters are supported "
+               "currently.\n");
+        exit_program(1);
+    }
+
+    ost->source_index = -1;
+    ost->filter       = ofilter;
+
+    ofilter->ost      = ost;
+    ofilter->format   = -1;
+
+    if (ost->stream_copy) {
+        av_log(NULL, AV_LOG_ERROR, "Streamcopy requested for output stream %d:%d, "
+               "which is fed from a complex filtergraph. Filtering and streamcopy "
+               "cannot be used together.\n", ost->file_index, ost->index);
+        exit_program(1);
+    }
+
+    if (ost->avfilter && (ost->filters || ost->filters_script)) {
+        const char *opt = ost->filters ? "-vf/-af/-filter" : "-filter_script";
+        av_log(NULL, AV_LOG_ERROR,
+               "%s '%s' was specified through the %s option "
+               "for output stream %d:%d, which is fed from a complex filtergraph.\n"
+               "%s and -filter_complex cannot be used together for the same stream.\n",
+               ost->filters ? "Filtergraph" : "Filtergraph script",
+               ost->filters ? ost->filters : ost->filters_script,
+               opt, ost->file_index, ost->index, opt);
+        exit_program(1);
+    }
+
+    avfilter_inout_free(&ofilter->out_tmp);
+}
+
 static int open_output_file(OptionsContext *o, const char *filename)
 {
+    AVFormatContext *oc;
+    int i, j, err;
+    AVOutputFormat *file_oformat;
+    OutputFile *of;
+    OutputStream *ost;
+    InputStream  *ist;
+    AVDictionary *unused_opts = NULL;
+    AVDictionaryEntry *e = NULL;
+    int format_flags = 0;
+
+    if (o->stop_time != INT64_MAX && o->recording_time != INT64_MAX) {
+        o->stop_time = INT64_MAX;
+        av_log(NULL, AV_LOG_WARNING, "-t and -to cannot be used together; using -t.\n");
+    }
+
+    if (o->stop_time != INT64_MAX && o->recording_time == INT64_MAX) {
+        int64_t start_time = o->start_time == AV_NOPTS_VALUE ? 0 : o->start_time;
+        if (o->stop_time <= start_time) {
+            av_log(NULL, AV_LOG_ERROR, "-to value smaller than -ss; aborting.\n");
+            exit_program(1);
+        } else {
+            o->recording_time = o->stop_time - start_time;
+        }
+    }
+
+    GROW_ARRAY(output_files, nb_output_files);
+    of = av_mallocz(sizeof(*of));
+    if (!of)
+        exit_program(1);
+    output_files[nb_output_files - 1] = of;
+
+    of->ost_index      = nb_output_streams;
+    of->recording_time = o->recording_time;
+    of->start_time     = o->start_time;
+    of->limit_filesize = o->limit_filesize;
+    of->shortest       = o->shortest;
+    av_dict_copy(&of->opts, o->g->format_opts, 0);
+
+    if (!strcmp(filename, "-"))
+        filename = "pipe:";
+
+    err = avformat_alloc_output_context2(&oc, NULL, o->format, filename);
+    if (!oc) {
+        print_error(filename, err);
+        exit_program(1);
+    }
+
+    of->ctx = oc;
+    if (o->recording_time != INT64_MAX)
+        oc->duration = o->recording_time;
+
+    file_oformat= oc->oformat;
+    oc->interrupt_callback = int_cb;
+
+    e = av_dict_get(o->g->format_opts, "fflags", NULL, 0);
+    if (e) {
+        const AVOption *o = av_opt_find(oc, "fflags", NULL, 0, 0);
+        av_opt_eval_flags(oc, o, e->value, &format_flags);
+    }
+
+    /* create streams for all unlabeled output pads */
+    for (i = 0; i < nb_filtergraphs; i++) {
+        FilterGraph *fg = filtergraphs[i];
+        for (j = 0; j < fg->nb_outputs; j++) {
+            OutputFilter *ofilter = fg->outputs[j];
+
+            if (!ofilter->out_tmp || ofilter->out_tmp->name)
+                continue;
+
+            switch (ofilter->type) {
+            case AVMEDIA_TYPE_VIDEO:    o->video_disable    = 1; break;
+            case AVMEDIA_TYPE_AUDIO:    o->audio_disable    = 1; break;
+            case AVMEDIA_TYPE_SUBTITLE: o->subtitle_disable = 1; break;
+            }
+            init_output_filter(ofilter, o, oc);
+        }
+    }
+
     return 0;
 }
 
