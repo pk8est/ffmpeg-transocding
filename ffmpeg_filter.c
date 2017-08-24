@@ -1153,7 +1153,6 @@ int ifilter_parameters_from_frame(InputFilter *ifilter, const AVFrame *frame)
         if (!ifilter->hw_frames_ctx)
             return AVERROR(ENOMEM);
     }
-    printf("width=%d, height=%d, sample_aspect_ratio=%p\n", frame->width, frame->height, frame->sample_aspect_ratio);
 
     return 0;
 }
