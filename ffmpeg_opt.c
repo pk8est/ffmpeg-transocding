@@ -2128,6 +2128,24 @@ static int open_output_file(OptionsContext *o, const char *filename)
                 new_video_stream(o, oc, idx);
             }
         }
+
+        /* audio: most channels */
+        if (!o->audio_disable && av_guess_codec(oc->oformat, NULL, filename, NULL, AVMEDIA_TYPE_AUDIO) != AV_CODEC_ID_NONE) {
+            int best_score = 0, idx = -1;
+            for (i = 0; i < nb_input_streams; i++) {
+                int score;
+                ist = input_streams[i];
+                score = ist->st->codecpar->channels + 100000000*!!ist->st->codec_info_nb_frames;
+                if (ist->st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO &&
+                    score > best_score) {
+                    best_score = score;
+                    idx = i;
+                }
+            }
+            if (idx >= 0)
+                new_audio_stream(o, oc, idx);
+        }
+
         /* subtitles: pick first */
         MATCH_PER_TYPE_OPT(codec_names, str, subtitle_codec_name, oc, "s");
         if (!o->subtitle_disable && (avcodec_find_encoder(oc->oformat->subtitle_codec) || subtitle_codec_name)) {
