@@ -116,6 +116,29 @@ void *grow_array(void *array, int elem_size, int *size, int new_size);
 
 #define GROW_ARRAY(array, nb_elems) array = grow_array(array, sizeof(*array), &nb_elems, nb_elems + 1)
 
+#define media_type_string av_get_media_type_string
+
+#define GROW_ARRAY(array, nb_elems)\
+    array = grow_array(array, sizeof(*array), &nb_elems, nb_elems + 1)
+
+#define GET_PIX_FMT_NAME(pix_fmt)\
+    const char *name = av_get_pix_fmt_name(pix_fmt);
+
+#define GET_SAMPLE_FMT_NAME(sample_fmt)\
+    const char *name = av_get_sample_fmt_name(sample_fmt)
+
+#define GET_SAMPLE_RATE_NAME(rate)\
+    char name[16];\
+    snprintf(name, sizeof(name), "%d", rate);
+
+#define GET_CH_LAYOUT_NAME(ch_layout)\
+    char name[16];\
+    snprintf(name, sizeof(name), "0x%"PRIx64, ch_layout);
+
+#define GET_CH_LAYOUT_DESC(ch_layout)\
+    char name[128];\
+    av_get_channel_layout_string(name, sizeof(name), 0, ch_layout);
+
 int split_commandline(OptionParseContext *octx, int argc, char *argv[], const OptionDef *options, const OptionGroupDef *groups, int nb_groups);
 static const OptionDef *find_option(const OptionDef *po, const char *name);
 static void add_opt(OptionParseContext *octx, const OptionDef *opt, const char *key, const char *val);

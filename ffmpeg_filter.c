@@ -39,6 +39,47 @@
 
 #include "transcoding.h"
 
+ /* Define a function for building a string containing a list of
+ * allowed formats. */
+#define DEF_CHOOSE_FORMAT(suffix, type, var, supported_list, none, get_name)   \
+static char *choose_ ## suffix (OutputFilter *ofilter)                         \
+{                                                                              \
+    if (ofilter->var != none) {                                                \
+        get_name(ofilter->var);                                                \
+        return av_strdup(name);                                                \
+    } else if (ofilter->supported_list) {                                      \
+        const type *p;                                                         \
+        AVIOContext *s = NULL;                                                 \
+        uint8_t *ret;                                                          \
+        int len;                                                               \
+                                                                               \
+        if (avio_open_dyn_buf(&s) < 0)                                         \
+            exit_program(1);                                                           \
+                                                                               \
+        for (p = ofilter->supported_list; *p != none; p++) {                   \
+            get_name(*p);                                                      \
+            avio_printf(s, "%s|", name);                                       \
+        }                                                                      \
+        len = avio_close_dyn_buf(s, &ret);                                     \
+        ret[len - 1] = 0;                                                      \
+        return ret;                                                            \
+    } else                                                                     \
+        return NULL;                                                           \
+}
+
+//DEF_CHOOSE_FORMAT(pix_fmts, enum AVPixelFormat, format, formats, AV_PIX_FMT_NONE,
+//                  GET_PIX_FMT_NAME)
+
+DEF_CHOOSE_FORMAT(sample_fmts, enum AVSampleFormat, format, formats,
+                  AV_SAMPLE_FMT_NONE, GET_SAMPLE_FMT_NAME)
+
+DEF_CHOOSE_FORMAT(sample_rates, int, sample_rate, sample_rates, 0,
+                  GET_SAMPLE_RATE_NAME)
+
+DEF_CHOOSE_FORMAT(channel_layouts, uint64_t, channel_layout, channel_layouts, 0,
+                  GET_CH_LAYOUT_NAME)
+
+
 static const enum AVPixelFormat *get_compliance_unofficial_pix_fmts(enum AVCodecID codec_id, const enum AVPixelFormat default_formats[])
 {
     static const enum AVPixelFormat mjpeg_formats[] =
@@ -871,12 +912,10 @@ static int configure_output_audio_filter(FilterGraph *fg, OutputFilter *ofilter,
     if (codec->channels && !codec->channel_layout)
         codec->channel_layout = av_get_default_channel_layout(codec->channels);
 
-    /*
-    //原码是这样的，我先注释掉 TODO
     sample_fmts     = choose_sample_fmts(ofilter);
     sample_rates    = choose_sample_rates(ofilter);
     channel_layouts = choose_channel_layouts(ofilter);
-    */
+
     if (sample_fmts || sample_rates || channel_layouts) {
         AVFilterContext *format;
         char args[256];
