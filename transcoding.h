@@ -11,23 +11,23 @@
 
 #include "cmdutils.h"
 
-#include "libavformat/avformat.h"
-#include "libavformat/avio.h"
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
 
-#include "libavcodec/avcodec.h"
+#include <libavcodec/avcodec.h>
 
-#include "libavfilter/avfilter.h"
+#include <libavfilter/avfilter.h>
 
-#include "libavutil/avutil.h"
-#include "libavutil/dict.h"
-#include "libavutil/eval.h"
-#include "libavutil/fifo.h"
-#include "libavutil/hwcontext.h"
-#include "libavutil/pixfmt.h"
-#include "libavutil/rational.h"
-#include "libavutil/threadmessage.h"
+#include <libavutil/avutil.h>
+#include <libavutil/dict.h>
+#include <libavutil/eval.h>
+#include <libavutil/fifo.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/pixfmt.h>
+#include <libavutil/rational.h>
+#include <libavutil/threadmessage.h>
 
-#include "libswresample/swresample.h"
+#include <libswresample/swresample.h>
 
 #define AVCONV_DATADIR "./"
 #define VSYNC_AUTO       -1
@@ -74,6 +74,11 @@ typedef struct HWAccel {
     enum AVHWDeviceType device_type;
 } HWAccel;
 
+typedef struct HWDevice {
+    char *name;
+    enum AVHWDeviceType type;
+    AVBufferRef *device_ref;
+} HWDevice;
 
 /* select an input stream for an output stream */
 typedef struct StreamMap {
@@ -547,12 +552,10 @@ typedef struct OutputFile {
 } OutputFile;
 
 extern const char program_name[];
-extern const AVIOInterruptCB int_cb;
-
 extern InputStream **input_streams;
-extern int nb_input_streams;
-extern InputFile **input_files;
-extern int nb_input_files;
+extern int        nb_input_streams;
+extern InputFile   **input_files;
+extern int        nb_input_files;
 
 extern OutputStream **output_streams;
 extern int         nb_output_streams;
@@ -560,10 +563,52 @@ extern OutputFile   **output_files;
 extern int         nb_output_files;
 
 extern FilterGraph **filtergraphs;
-extern int  nb_filtergraphs;
+extern int        nb_filtergraphs;
+
+extern char *vstats_filename;
+extern char *sdp_filename;
+
+extern float audio_drift_threshold;
+extern float dts_delta_threshold;
+extern float dts_error_threshold;
+
+extern int audio_volume;
+extern int audio_sync_method;
+extern int video_sync_method;
+extern float frame_drop_threshold;
+extern int do_benchmark;
+extern int do_benchmark_all;
+extern int do_deinterlace;
+extern int do_hex_dump;
+extern int do_pkt_dump;
+extern int copy_ts;
+extern int start_at_zero;
+extern int copy_tb;
+extern int debug_ts;
+extern int exit_on_error;
+extern int abort_on_flags;
+extern int print_stats;
+extern int qp_hist;
+extern int stdin_interaction;
+extern int frame_bits_per_raw_sample;
+extern AVIOContext *progress_avio;
+extern float max_error_rate;
+extern char *videotoolbox_pixfmt;
+
+extern int filter_nbthreads;
+extern int filter_complex_nbthreads;
+extern int vstats_version;
+
+extern const AVIOInterruptCB int_cb;
+
+extern const OptionDef options[];
+extern const HWAccel hwaccels[];
+extern int hwaccel_lax_profile_check;
+extern AVBufferRef *hw_device_ctx;
 
 static void sigterm_handler(int sig);
 static void term_exit_sigsafe(void);
+static int64_t getutime(void);
 void term_init(void);
 void term_exit(void);
 void remove_avoptions(AVDictionary **a, AVDictionary *b);

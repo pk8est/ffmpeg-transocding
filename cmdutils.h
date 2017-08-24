@@ -7,6 +7,7 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/avstring.h>
+#include <libavutil/eval.h>
 #include <libavutil/opt.h>
 
 typedef struct SpecifierOpt {

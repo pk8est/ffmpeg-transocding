@@ -370,6 +370,75 @@ static int write_option(void *optctx, const OptionDef *po, const char *opt,
     return 0;
 }
 
+static inline void prepare_app_arguments(int *argc_ptr, char ***argv_ptr)
+{
+    /* nothing to do */
+}
+
+int parse_option(void *optctx, const char *opt, const char *arg,
+                 const OptionDef *options)
+{
+    const OptionDef *po;
+    int ret;
+
+    po = find_option(options, opt);
+    if (!po->name && opt[0] == 'n' && opt[1] == 'o') {
+        /* handle 'no' bool option */
+        po = find_option(options, opt + 2);
+        if ((po->name && (po->flags & OPT_BOOL)))
+            arg = "0";
+    } else if (po->flags & OPT_BOOL)
+        arg = "1";
+
+    if (!po->name)
+        po = find_option(options, "default");
+    if (!po->name) {
+        av_log(NULL, AV_LOG_ERROR, "Unrecognized option '%s'\n", opt);
+        return AVERROR(EINVAL);
+    }
+    if (po->flags & HAS_ARG && !arg) {
+        av_log(NULL, AV_LOG_ERROR, "Missing argument for option '%s'\n", opt);
+        return AVERROR(EINVAL);
+    }
+
+    ret = write_option(optctx, po, opt, arg);
+    if (ret < 0)
+        return ret;
+
+    return !!(po->flags & HAS_ARG);
+}
+
+void parse_options(void *optctx, int argc, char **argv, const OptionDef *options,
+                   void (*parse_arg_function)(void *, const char*))
+{
+    const char *opt;
+    int optindex, handleoptions = 1, ret;
+
+    /* perform system-dependent conversions for arguments list */
+    prepare_app_arguments(&argc, &argv);
+
+    /* parse options */
+    optindex = 1;
+    while (optindex < argc) {
+        opt = argv[optindex++];
+
+        if (handleoptions && opt[0] == '-' && opt[1] != '\0') {
+            if (opt[1] == '-' && opt[2] == '\0') {
+                handleoptions = 0;
+                continue;
+            }
+            opt++;
+
+            if ((ret = parse_option(optctx, opt, argv[optindex], options)) < 0)
+                exit_program(1);
+            optindex += ret;
+        } else {
+            if (parse_arg_function)
+                parse_arg_function(optctx, opt);
+        }
+    }
+}
+
 int parse_optgroup(void *optctx, OptionGroup *g)
 {
     int i, ret;
