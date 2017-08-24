@@ -614,6 +614,7 @@ static void term_exit_sigsafe(void);
 static int64_t getutime(void);
 void term_init(void);
 void term_exit(void);
+static int reap_filters(int flush);
 void remove_avoptions(AVDictionary **a, AVDictionary *b);
 void assert_avoptions(AVDictionary *m);
 int guess_input_channel_layout(InputStream *ist);

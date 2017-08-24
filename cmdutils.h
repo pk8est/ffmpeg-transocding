@@ -138,5 +138,6 @@ void register_exit(void (*cb)(int ret));
 void init_opts(void);
 void uninit_opts(void);
 void uninit_parse_context(OptionParseContext *octx);
+double get_rotation(AVStream *st);
 
 #endif
