@@ -39,6 +39,8 @@
 
 #define MAX_STREAMS 1024    /* arbitrary sanity check value */
 
+#define ABORT_ON_FLAG_EMPTY_OUTPUT (1 <<  0)
+
 enum HWAccelID {
     HWACCEL_NONE = 0,
     HWACCEL_AUTO,
@@ -445,6 +447,7 @@ typedef struct OutputStream {
     AVRational enc_timebase;
 
     int                    nb_bitstream_filters;
+    uint8_t                  *bsf_extradata_updated;
     AVBSFContext            **bsf_ctx;
 
     AVCodecContext *enc_ctx;

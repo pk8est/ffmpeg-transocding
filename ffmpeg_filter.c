@@ -229,3 +229,11 @@ int init_simple_filtergraph(InputStream *ist, OutputStream *ost)
 
     return 0;
 }
+
+
+int configure_filtergraph(FilterGraph *fg)
+{
+    int ret;
+    //TODO
+    return ret;
+}
