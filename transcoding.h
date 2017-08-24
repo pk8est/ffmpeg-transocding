@@ -29,6 +29,16 @@
 
 #include "libswresample/swresample.h"
 
+#define AVCONV_DATADIR "./"
+#define VSYNC_AUTO       -1
+#define VSYNC_PASSTHROUGH 0
+#define VSYNC_CFR         1
+#define VSYNC_VFR         2
+#define VSYNC_VSCFR       0xfe
+#define VSYNC_DROP        0xff
+
+#define MAX_STREAMS 1024    /* arbitrary sanity check value */
+
 enum HWAccelID {
     HWACCEL_NONE = 0,
     HWACCEL_AUTO,
