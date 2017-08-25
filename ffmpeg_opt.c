@@ -3,6 +3,7 @@
 #include "cmdutils.h"
 #include "ffmpeg_opt.h"
 
+#include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
 #include <libavutil/avassert.h>
@@ -2020,6 +2021,7 @@ static int open_output_file(OptionsContext *o, const char *filename)
     AVDictionaryEntry *e = NULL;
     int format_flags = 0;
 
+
     if (o->stop_time != INT64_MAX && o->recording_time != INT64_MAX) {
         o->stop_time = INT64_MAX;
         av_log(NULL, AV_LOG_WARNING, "-t and -to cannot be used together; using -t.\n");
@@ -2706,6 +2708,7 @@ static int open_files(OptionGroupList *l, const char *inout,
 {
     int i, ret;
 
+
     for (i = 0; i < l->nb_groups; i++) {
         OptionGroup *g = &l->groups[i];
         OptionsContext o;
@@ -2757,7 +2760,6 @@ int ffmpeg_parse_options(int argc, char **argv)
     OptionParseContext octx;
     uint8_t error[128];
     int ret;
-
     memset(&octx, 0, sizeof(octx));
     /* split the commandline into an internal representation */
     ret = split_commandline(&octx, argc, argv, options, groups,
@@ -2766,7 +2768,6 @@ int ffmpeg_parse_options(int argc, char **argv)
         av_log(NULL, AV_LOG_FATAL, "Error splitting the argument list: ");
         goto fail;
     }
-
 
     /* apply global options */
     ret = parse_optgroup(NULL, &octx.global_opts);
@@ -2791,6 +2792,7 @@ int ffmpeg_parse_options(int argc, char **argv)
         av_log(NULL, AV_LOG_FATAL, "Error initializing complex filters.\n");
         goto fail;
     }
+
 
     /* open output files */
     ret = open_files(&octx.groups[GROUP_OUTFILE], "output", open_output_file);

@@ -7,7 +7,7 @@ LIBS = -L/usr/local/ffmpeg/lib -lavcodec -lavdevice -lavfilter -lavformat -lavut
 
 all: $(TARGET)
 
-SOURCES = packet.c trans.c cffmpeg.c
+SOURCES = packet.c trans.c cmdutils.c ffmpeg_filter.c ffmpeg_opt.c transcoding.c cffmpeg.c
 OBJECTS = $(SOURCES:.c=.o)
 
 $(TARGET) : $(OBJECTS)

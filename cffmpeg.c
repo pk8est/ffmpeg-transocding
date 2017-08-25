@@ -12,7 +12,8 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "trans.h"
+#include "transcoding.h"
+//#include "trans.h"
 
 
 #define ISspace(x) isspace((int)(x))
@@ -44,6 +45,7 @@ void execute_cgi(int client, const char *path,
     int pfds[2];
     int status;
     pid_t pid;
+    FILE *fp = fopen( "./build/output-pipe.txt", "wb" );
     printf("transcoding start ...\n");
 
     if (pipe(pfds) < 0) {
@@ -56,25 +58,39 @@ void execute_cgi(int client, const char *path,
         cannot_execute(client);
         return;
     }else if(pid == 0){
+        char *argv[] = {
+            "-y",
+            "-i",
+            path,
+            "-f",
+            "mpegts",
+            "-c:v",
+            "libx264",
+            "pipe:"
+        };
+        int argc = sizeof(argv)/sizeof(argv[0]);
         dup2(pfds[1], STDOUT);
         close(pfds[0]);
-        set_log_level(ERROR);
-        create_trans_task(path, "pipe:");
+        av_log_set_level(AV_LOG_ERROR);
+        run_transcoding(argc, argv, NULL, NULL);
+        /*av_log_set_level(AV_LOG_ERROR);
+        create_trans_task(path, "pipe:");*/
         return ;
     }else{
-        sprintf(buf, "HTTP/1.1 200 OK\r\n\r\n");
-        send(client, buf, strlen(buf), 0);
-
+        
+        write_ts_header(client);
         close(pfds[1]);
         size_t bytes;
         char buffer[BLOCK_SIZE];
 
         while ((ret = read(pfds[0], buffer, sizeof(buffer))) > 0){
             send(client, buffer, ret, 0);
+            fwrite(buffer, sizeof(char), ret, fp);
         }
         shutdown(client, SHUT_RDWR);
         close(pfds[0]);
     }
+    fclose(fp);
 
 
 
@@ -128,11 +144,13 @@ void accept_request(void *arg)
         query_string++;
     }
 
+    //sprintf(path, "http://v-livegrab-static.huya.com%s", url);
     sprintf(path, "/mnt/hgfs/web/c++/ffmpeg-transocding/build%s", url);
-
+    /*//判断文件是否存在
     if (stat(path, &st) == -1) {
         not_found(client);
     }
+    */
 
     printf("method=%s, query_string=%s, path=%s\n", method, *query_string, path);
     execute_cgi(client, path, method, query_string);
@@ -173,6 +191,7 @@ int startup(u_short *port)
 
 int main(void)
 {
+
     int server_sock = -1;
     u_short port = 4000;
     int client_sock = -1;
@@ -252,6 +271,24 @@ int get_line(int sock, char *buf, int size)
     buf[i] = '\0';
 
     return(i);
+}
+
+void write_ts_header(int client){
+    char buf[1024];
+    sprintf(buf, "HTTP/1.1 200 OK\r\n");
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Content-Type: video/mp2t\r\n");
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Accept-Ranges: bytes\r\n");
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Content-Type: video/mp2t\r\n");
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Access-Control-Allow-Origin: *\r\n");
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Connection: keep-alive\r\n");
+    send(client, buf, strlen(buf), 0);
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "\r\n");
 }
 
 void not_found(int client)
