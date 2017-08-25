@@ -64,6 +64,9 @@ void execute_cgi(int client, const char *path,
             path,
             "-f",
             "mpegts",
+            /*"mp4",
+            "-movflags",
+            "flag_keyframe+empty_moov",*/
             "-c:v",
             "libx264",
             "pipe:"

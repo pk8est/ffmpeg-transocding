@@ -615,6 +615,7 @@ static int64_t getutime(void);
 static int check_init_output_file(OutputFile *of, int file_index);
 static void set_encoder_id(OutputFile *of, OutputStream *ost);
 static void parse_forced_key_frames(char *kf, OutputStream *ost, AVCodecContext *avctx);
+static void do_subtitle_out(OutputFile *of, OutputStream *ost, AVSubtitle *sub);
 void term_init(void);
 void term_exit(void);
 static int reap_filters(int flush);
