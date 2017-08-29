@@ -139,6 +139,8 @@ void *grow_array(void *array, int elem_size, int *size, int new_size);
     char name[128];\
     av_get_channel_layout_string(name, sizeof(name), 0, ch_layout);
 
+extern AVDictionary *format_opts, *codec_opts, *resample_opts;
+
 int split_commandline(OptionParseContext *octx, int argc, char *argv[], const OptionDef *options, const OptionGroupDef *groups, int nb_groups);
 static const OptionDef *find_option(const OptionDef *po, const char *name);
 static void add_opt(OptionParseContext *octx, const OptionDef *opt, const char *key, const char *val);
@@ -162,5 +164,6 @@ void init_opts(void);
 void uninit_opts(void);
 void uninit_parse_context(OptionParseContext *octx);
 double get_rotation(AVStream *st);
-
+int opt_timelimit(void *optctx, const char *opt, const char *arg);
+FILE *get_preset_file(char *filename, size_t filename_size, const char *preset_name, int is_path, const char *codec_name);
 #endif

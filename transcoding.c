@@ -41,6 +41,8 @@ static int current_time;
 static uint8_t *subtitle_out;
 static int64_t decode_error_stat[2];
 
+
+AVIOContext *progress_avio = NULL;
 InputStream **input_streams = NULL;
 int nb_input_streams = 0;
 InputFile **input_files   = NULL;
