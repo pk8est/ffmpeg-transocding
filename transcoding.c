@@ -3476,6 +3476,7 @@ static int transcode_step(void)
     }
 
     if (ost->filter && !ost->filter->graph->graph) {
+		/*ignore*/
         if (ifilter_has_all_input_formats(ost->filter->graph)) {
             ret = configure_filtergraph(ost->filter->graph);
             if (ret < 0) {
