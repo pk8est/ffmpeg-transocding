@@ -3,4 +3,5 @@
 *.swp
 build/*
 *.o
-
+*.opendb
+*.db
